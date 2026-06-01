@@ -43,22 +43,35 @@ FINAL_REPORT format:
   "supervisor_summary": ""
 }"""
 
+
 def ask_agent(hist):
-    client = genai.Client(
-        api_key=st.secrets["GEMINI_API_KEY"],
-        http_options={"api_version": "v1"}
-    )
+    client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
 
     full_prompt = SYSTEM + "\n\n"
     for msg in hist:
         role = "User" if msg["role"] == "user" else "Assistant"
         full_prompt += f"{role}: {msg['content']}\n\n"
 
-    response = client.models.generate_content(
-        model="gemini-1.5-flash",
-        contents=full_prompt
-    )
-    return response.text
+    models = [
+        "gemini-2.0-flash-exp",
+        "gemini-2.0-flash-lite",
+        "gemini-1.5-pro",
+        "gemini-1.5-flash-001",
+        "gemini-pro",
+    ]
+
+    errors = []
+    for m in models:
+        try:
+            response = client.models.generate_content(
+                model=m,
+                contents=full_prompt
+            )
+            return response.text
+        except Exception as e:
+            errors.append(f"{m}: {str(e)[:80]}")
+
+    raise Exception("All models failed:\n" + "\n".join(errors))
 
 
 def parse_json(raw):
