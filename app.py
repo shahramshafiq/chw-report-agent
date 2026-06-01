@@ -53,7 +53,7 @@ def ask_agent(hist):
         full_prompt += f"{role}: {msg['content']}\n\n"
 
     response = client.models.generate_content(
-        model="gemini-2.0-flash-lite",
+        model="gemini-2.0-flash",
         contents=full_prompt
     )
     return response.text
@@ -126,6 +126,13 @@ def show_report(parsed):
     st.info(parsed.get("supervisor_summary") or "—")
 
 
+def run_agent(hist):
+    try:
+        return ask_agent(hist), None
+    except Exception as e:
+        return None, f"{type(e).__name__}: {str(e)}"
+
+
 def main():
     st.set_page_config(page_title="CHW Report Agent", page_icon="🏥")
     st.title("🏥 CHW Field Report Agent")
@@ -147,11 +154,14 @@ def main():
                 return
             with st.spinner("Analyzing report..."):
                 st.session_state.hist = [{"role": "user", "content": f"Field report:\n\n{report}"}]
-                raw = ask_agent(st.session_state.hist)
+                raw, err = run_agent(st.session_state.hist)
+                if err:
+                    st.error(f"API Error — {err}")
+                    return
                 st.session_state.hist.append({"role": "assistant", "content": raw})
                 parsed = parse_json(raw)
                 if not parsed:
-                    st.error("Failed to process. Please try again.")
+                    st.error("Failed to parse response. Please try again.")
                     return
                 if parsed["stage"] == "CLARIFICATION":
                     st.session_state.pending_qs = parsed.get("questions", [])
@@ -176,7 +186,10 @@ def main():
                         "role": "user",
                         "content": f"Clarification answers:\n\n{block}\n\nNow produce FINAL_REPORT."
                     })
-                    raw = ask_agent(st.session_state.hist)
+                    raw, err = run_agent(st.session_state.hist)
+                    if err:
+                        st.error(f"API Error — {err}")
+                        return
                     st.session_state.hist.append({"role": "assistant", "content": raw})
                     st.session_state.result = parse_json(raw)
                     st.session_state.phase = "done"
@@ -188,7 +201,10 @@ def main():
                         "role": "user",
                         "content": "No clarifications available. Generate FINAL_REPORT and note all gaps in the gaps field."
                     })
-                    raw = ask_agent(st.session_state.hist)
+                    raw, err = run_agent(st.session_state.hist)
+                    if err:
+                        st.error(f"API Error — {err}")
+                        return
                     st.session_state.hist.append({"role": "assistant", "content": raw})
                     st.session_state.result = parse_json(raw)
                     st.session_state.phase = "done"
