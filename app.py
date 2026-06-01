@@ -47,7 +47,7 @@ FINAL_REPORT format:
 def ask_agent(hist):
     client = anthropic.Anthropic(api_key=st.secrets["ANTHROPIC_API_KEY"])
     res = client.messages.create(
-        model="claude-sonnet-4-20250514",
+        model="claude-sonnet-4-6",
         max_tokens=1000,
         system=SYSTEM,
         messages=hist
