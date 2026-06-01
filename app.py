@@ -53,7 +53,7 @@ def ask_agent(hist):
         full_prompt += f"{role}: {msg['content']}\n\n"
 
     response = client.models.generate_content(
-        model="gemini-2.0-flash",
+        model="gemini-1.5-flash",
         contents=full_prompt
     )
     return response.text
