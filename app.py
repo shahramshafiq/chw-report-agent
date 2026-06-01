@@ -46,23 +46,26 @@ FINAL_REPORT format:
 
 def ask_agent(hist):
     key = st.secrets["GEMINI_API_KEY"]
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={key}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={key}"
 
     contents = []
-    for msg in hist:
+    for i, msg in enumerate(hist):
         role = "user" if msg["role"] == "user" else "model"
-        contents.append({"role": role, "parts": [{"text": msg["content"]}]})
+        content = SYSTEM + "\n\n" + msg["content"] if i == 0 else msg["content"]
+        contents.append({"role": role, "parts": [{"text": content}]})
 
     body = {
-        "system_instruction": {"parts": [{"text": SYSTEM}]},
         "contents": contents,
         "generationConfig": {"maxOutputTokens": 1000}
     }
 
     res = requests.post(url, json=body)
     data = res.json()
-    return data["candidates"][0]["content"]["parts"][0]["text"]
 
+    if "candidates" not in data:
+        raise Exception(f"API Error: {data}")
+
+    return data["candidates"][0]["content"]["parts"][0]["text"]
 
 def parse_json(raw):
     txt = raw.strip()
