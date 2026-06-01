@@ -45,37 +45,24 @@ FINAL_REPORT format:
 
 
 def ask_agent(hist):
-    key = st.secrets["OPENROUTER_API_KEY"]
+    key = st.secrets["GROQ_API_KEY"]
 
     messages = [{"role": "system", "content": SYSTEM}]
     for msg in hist:
         messages.append({"role": msg["role"], "content": msg["content"]})
 
-    models = [
-        "deepseek/deepseek-chat:free",
-        "meta-llama/llama-3.3-70b-instruct:free",
-        "deepseek/deepseek-r1:free",
-        "qwen/qwen-2.5-7b-instruct:free",
-        "google/gemini-2.0-flash-lite-001:free",
-        "nousresearch/hermes-3-llama-3.1-405b:free",
-    ]
-
-    errors = []
-    for model in models:
-        res = requests.post(
-            "https://openrouter.ai/api/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {key}",
-                "Content-Type": "application/json"
-            },
-            json={"model": model, "messages": messages}
-        )
-        data = res.json()
-        if "choices" in data:
-            return data["choices"][0]["message"]["content"]
-        errors.append(f"{model}: {data.get('error', {}).get('message', 'unknown')[:60]}")
-
-    raise Exception("All models failed:\n" + "\n".join(errors))
+    res = requests.post(
+        "https://api.groq.com/openai/v1/chat/completions",
+        headers={
+            "Authorization": f"Bearer {key}",
+            "Content-Type": "application/json"
+        },
+        json={"model": "llama-3.3-70b-versatile", "messages": messages, "max_tokens": 1000}
+    )
+    data = res.json()
+    if "choices" not in data:
+        raise Exception(f"Groq error: {data}")
+    return data["choices"][0]["message"]["content"]
 
 
 def parse_json(raw):
