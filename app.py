@@ -43,9 +43,11 @@ FINAL_REPORT format:
   "supervisor_summary": ""
 }"""
 
-
 def ask_agent(hist):
-    client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
+    client = genai.Client(
+        api_key=st.secrets["GEMINI_API_KEY"],
+        http_options={"api_version": "v1"}
+    )
 
     full_prompt = SYSTEM + "\n\n"
     for msg in hist:
