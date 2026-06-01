@@ -1,5 +1,5 @@
 import streamlit as st
-from google import genai
+import requests
 import json
 
 SYSTEM = """You are a health report processing agent for Community Health Workers (CHWs) in Pakistan.
@@ -45,33 +45,25 @@ FINAL_REPORT format:
 
 
 def ask_agent(hist):
-    client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
+    key = st.secrets["OPENROUTER_API_KEY"]
 
-    full_prompt = SYSTEM + "\n\n"
+    messages = [{"role": "system", "content": SYSTEM}]
     for msg in hist:
-        role = "User" if msg["role"] == "user" else "Assistant"
-        full_prompt += f"{role}: {msg['content']}\n\n"
+        messages.append({"role": msg["role"], "content": msg["content"]})
 
-    models = [
-        "gemini-2.0-flash-exp",
-        "gemini-2.0-flash-lite",
-        "gemini-1.5-pro",
-        "gemini-1.5-flash-001",
-        "gemini-pro",
-    ]
-
-    errors = []
-    for m in models:
-        try:
-            response = client.models.generate_content(
-                model=m,
-                contents=full_prompt
-            )
-            return response.text
-        except Exception as e:
-            errors.append(f"{m}: {str(e)[:80]}")
-
-    raise Exception("All models failed:\n" + "\n".join(errors))
+    res = requests.post(
+        "https://openrouter.ai/api/v1/chat/completions",
+        headers={
+            "Authorization": f"Bearer {key}",
+            "Content-Type": "application/json"
+        },
+        json={
+            "model": "google/gemini-2.0-flash-exp:free",
+            "messages": messages
+        }
+    )
+    data = res.json()
+    return data["choices"][0]["message"]["content"]
 
 
 def parse_json(raw):
