@@ -1,5 +1,5 @@
 import streamlit as st
-import anthropic
+import google.generativeai as genai
 import json
 
 SYSTEM = """You are a health report processing agent for Community Health Workers (CHWs) in Pakistan.
@@ -45,14 +45,20 @@ FINAL_REPORT format:
 
 
 def ask_agent(hist):
-    client = anthropic.Anthropic(api_key=st.secrets["ANTHROPIC_API_KEY"])
-    res = client.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=1000,
-        system=SYSTEM,
-        messages=hist
+    genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+    model = genai.GenerativeModel(
+        model_name="gemini-1.5-flash",
+        system_instruction=SYSTEM
     )
-    return res.content[0].text
+
+    gemini_hist = []
+    for msg in hist[:-1]:
+        role = "model" if msg["role"] == "assistant" else "user"
+        gemini_hist.append({"role": role, "parts": [msg["content"]]})
+
+    chat = model.start_chat(history=gemini_hist)
+    res = chat.send_message(hist[-1]["content"])
+    return res.text
 
 
 def parse_json(raw):
