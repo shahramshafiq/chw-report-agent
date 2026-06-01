@@ -1,5 +1,5 @@
 import streamlit as st
-import google.generativeai as genai
+import requests
 import json
 
 SYSTEM = """You are a health report processing agent for Community Health Workers (CHWs) in Pakistan.
@@ -45,20 +45,23 @@ FINAL_REPORT format:
 
 
 def ask_agent(hist):
-    genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-    model = genai.GenerativeModel(
-        model_name="gemini-1.5-flash-latest",
-        system_instruction=SYSTEM
-    )
+    key = st.secrets["GEMINI_API_KEY"]
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={key}"
 
-    gemini_hist = []
-    for msg in hist[:-1]:
-        role = "model" if msg["role"] == "assistant" else "user"
-        gemini_hist.append({"role": role, "parts": [msg["content"]]})
+    contents = []
+    for msg in hist:
+        role = "user" if msg["role"] == "user" else "model"
+        contents.append({"role": role, "parts": [{"text": msg["content"]}]})
 
-    chat = model.start_chat(history=gemini_hist)
-    res = chat.send_message(hist[-1]["content"])
-    return res.text
+    body = {
+        "system_instruction": {"parts": [{"text": SYSTEM}]},
+        "contents": contents,
+        "generationConfig": {"maxOutputTokens": 1000}
+    }
+
+    res = requests.post(url, json=body)
+    data = res.json()
+    return data["candidates"][0]["content"]["parts"][0]["text"]
 
 
 def parse_json(raw):
