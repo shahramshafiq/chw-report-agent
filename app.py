@@ -1,5 +1,5 @@
 import streamlit as st
-import requests
+from google import genai
 import json
 
 SYSTEM = """You are a health report processing agent for Community Health Workers (CHWs) in Pakistan.
@@ -45,27 +45,19 @@ FINAL_REPORT format:
 
 
 def ask_agent(hist):
-    key = st.secrets["GEMINI_API_KEY"]
-    url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={key}"
+    client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
 
-    contents = []
-    for i, msg in enumerate(hist):
-        role = "user" if msg["role"] == "user" else "model"
-        content = SYSTEM + "\n\n" + msg["content"] if i == 0 else msg["content"]
-        contents.append({"role": role, "parts": [{"text": content}]})
+    full_prompt = SYSTEM + "\n\n"
+    for msg in hist:
+        role = "User" if msg["role"] == "user" else "Assistant"
+        full_prompt += f"{role}: {msg['content']}\n\n"
 
-    body = {
-        "contents": contents,
-        "generationConfig": {"maxOutputTokens": 1000}
-    }
+    response = client.models.generate_content(
+        model="gemini-2.0-flash-lite",
+        contents=full_prompt
+    )
+    return response.text
 
-    res = requests.post(url, json=body)
-    data = res.json()
-
-    if "candidates" not in data:
-        raise Exception(f"API Error: {data}")
-
-    return data["candidates"][0]["content"]["parts"][0]["text"]
 
 def parse_json(raw):
     txt = raw.strip()
