@@ -43,7 +43,6 @@ FINAL_REPORT format:
   "supervisor_summary": ""
 }"""
 
-
 def ask_agent(hist):
     key = st.secrets["OPENROUTER_API_KEY"]
 
@@ -63,6 +62,8 @@ def ask_agent(hist):
         }
     )
     data = res.json()
+    if "choices" not in data:
+        raise Exception(f"OpenRouter response: {data}")
     return data["choices"][0]["message"]["content"]
 
 
